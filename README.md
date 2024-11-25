@@ -11,15 +11,14 @@
 
 **This adapter uses Sentry libraries to automatically report exceptions and code errors to the developers.** For more details and for information how to disable the error reporting see [Sentry-Plugin Documentation](https://github.com/ioBroker/plugin-sentry#plugin-sentry)! Sentry reporting is used starting with js-controller 3.0.
 
-
 ## Description
 TODO
 
 ## Important Information (READ FIRST!)
-* **Never delete partial matter instance objects or object trees!** The configuration for this adapter is **not** contained in just one central object like in other ore simple adapters. This means that deleting instance objects or object trees can lead to a broken configuration and you might need to reconfigure the adapter from scratch.
-* **Never reinstall the adapter by deleting the instance** if you want to keep paired devices (e.g. on Controller) or paired Controllers (e.g. on Bridges). If you delete the instance all paired devices will be deleted and you need to pair them again.
-* **Use an ioBroker Backup to backup the configuration** and restore the backup to restore it. If really needed without backup then export the whole object tree of the adapter instance (e.g. matter.0) and import it back if needed. These can be a high number of objects depending on the number of devices and controllers you have paired.
-* Some objects are not shown by default because they are irrelevant for normal operation. If you need to see them you can enable the "Expert Mode" in the adapter settings. This mainly is about the "storage" objects. Please **do not** change them unless you really really know what you are doing!
+* **Never delete partial matter instance objects or object trees!** The configuration for this adapter is **not** contained in just one central object like in other ore simple adapters. This means that deleting instance objects or object trees can lead to a broken configuration, and you might need to reconfigure the adapter from scratch.
+* **Never reinstall the adapter by deleting the instance** if you want to keep paired devices (e.g. on Controller) or paired Controllers (e.g. on Bridges). If you delete the instance all paired devices will be deleted, and you need to pair them again.
+* **Use an ioBroker Backup to back up the configuration** and restore the backup to restore it. If really needed without backup then export the whole object tree of the adapter instance (e.g. matter.0) and import it back if needed. These can be a high number of objects depending on the number of devices and controllers you have paired.
+* Some objects are not shown by default because they are irrelevant for normal operation. If you need to see them you can enable the "Expert Mode" in the adapter settings. This mainly is about the "storage" objects. Please **do not** change them unless you really, really know what you are doing!
 
 ## Prerequisites to use this adapter
 
@@ -32,7 +31,7 @@ TODO
   * If you use Docker containers make sure to use **Host Mode** to allow UDP packages to flow between the containers and the host. Bridged network mode does not work with UDP packages!
 
 ### Prerequisites to Expose ioBroker devices as Matter Bridges or Devices
-Important: In order to expose more then 5 Bridged devices or to expose additional separate Devices or Bridges you need to have a Matter Pro Account with an active Assistant or Remote Control License and entering this into the adapter configuration! Please support our team with the efforts we invest in Matter with this. Controller usage is not limited by this.
+Important: In order to expose more than 5 Bridged devices or to expose additional separate Devices or Bridges you need to have a Matter Pro Account with an active Assistant or Remote Control License and entering this into the adapter configuration! Please support our team with the efforts we invest in Matter with this. Controller usage is not limited by this.
 
 * The Bridges and devices that the ioBroker Adapter exposes are not officially certified by the Matter organization. This means they only work in Ecosystems that allow this.
   * For Google additional steps might be needed - see https://github.com/project-chip/matter.js/blob/main/docs/ECOSYSTEMS.md#google-home-ecosystem
@@ -87,7 +86,7 @@ Important: In order to expose more then 5 Bridged devices or to expose additiona
 ## Usage information
 TBD
 
-## Wording: Node vs Device
+### Wording: Node vs Device
 TBD
 
 ### Using the Matter Controller
@@ -121,7 +120,10 @@ Note: This is considered Professional Usage!
 In all normal end user cases you should not need to use the System Cluster states. They are only needed for special cases and for debugging or to deeply explore the Matter cluster data. If you enable them you will see a lot of additional states that are not needed for normal operation. Any changes to the writable states can break the functionality of the devices. So please only use them if you know what you are doing!
 
 ### Using the Matter Bridges
-TBD
+
+#### Recommendations
+* Not all ecosystems support all device types and sometimes ecosystems react strange when you add a device type they do not support. So please check the ecosystem documentation for the supported device types, if available or try it out. We try to collect the details in the [Supported ioBroker devices](#supported-iobroker-device-types) section. Please report any new information as an issue or PR.
+* If you plan to use bridges with many devices so please consider commissioning the bridge initially with just some added devices and then add more overtime. This can help to avoid issues with the ecosystems and also could be a better experience for you. 
 
 ### Using the Matter Devices
 TBD
@@ -139,7 +141,7 @@ TBD
 ## How to report issues
 * Please check [Prerequisites to use this adapter](#prerequisites-to-use-this-adapter) and [Troubleshooting](#troubleshooting) first
 * Check that you are using the latest version available - or if not, if the changelog for the versions since your version contain information about your issue. Then try updating first please.
-* Check existing open GitHub issues. If your's is also listed there vote for it by adding a thumbs up on first comment. This helps to prioritize the issues. "Me Too" posts are not needed.
+* Check existing open GitHub issues. If yours is also listed there vote for it by adding a thumbs up on first comment. This helps to prioritize the issues. "Me Too" posts are not needed.
 * Create a GitHub issue if your issue is not existing
 * Turn on Debug logs fpr the matter instance, and additionally "Matter Debug" logs on the main page of the adapter settings. Include the logs (as Text file please, Logfile location usually /opt/iobroker/logs/...) as text file attachment in your issue report. Please do not cut only the error but also add some minutes of log before and after the error to get some more context. Please also include information on what exactly is seen there, what was done and such. The more context you can provide the better.
 
@@ -147,6 +149,7 @@ TBD
 ## ToDo
 * Texts are partially in english
 * Sync min/max from Matter into ioBroker objects
+* Cleanup objects when devices/states are removed
 * ioBroker device types
   * (9) Lights:
     * rgb
@@ -154,7 +157,7 @@ TBD
     * rgbSingle
     * cie
     * hue
-  * (8) blinds
+  * (8) blinds + blindButtons
   * (-8) thermostat
   * (5+2) button
   * (5+2) buttonSensor?
@@ -164,14 +167,13 @@ TBD
   * (2+) fireAlarm
   * (-2) mediaPlayer
   * warning - how?
-  * blindButtons - with bindings?
   * gate - aka blinds?
   * windowTilt - how?
   * levelSlider - how?
 * Matter device types
   * (9) Enhanced Color Light -> rgb/rgbw/cie/hue/...
   * (8) Thermostat -> thermostat
-  * (8) Window Covering -> blinds
+  * (8) Window Covering -> blinds / blindButtons
   * (7+) Light Sensor -> ??? DEF
   * (7) Fan -> thermostat?
   * (5+2) Generic Switch -> button? buttonSensor?
