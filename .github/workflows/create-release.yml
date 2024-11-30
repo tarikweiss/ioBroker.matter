@@ -37,7 +37,10 @@ jobs:
                   node-version: ${{ matrix.node }}
 
             - name: Install dependencies
-              run: npm ci
+              run: npm ci && cd src-admin && npm ci
+
+            - name: Build
+              run: npm run build
 
             - name: Test
               run: npm test
@@ -48,8 +51,9 @@ jobs:
               run: |
                   git config --global user.email "moritz.heusinger@gmail.com"
                   git config --global user.name "Github Action"
-
-                  npm run release -- ${VERSION_BUMP}
+                
+                  git diff --name-only
+                  yes "" | npm run release -- ${VERSION_BUMP} alpha --yes --noPush --all --ioPackageNoPrerelease
 
             - name: Determine the version bump
               id: version
@@ -66,12 +70,12 @@ jobs:
               run: |
                   VERSION="${{ github.ref }}"
                   VERSION=${VERSION##*/v}
-                  echo "::set-output name=VERSION::$VERSION"
+                  echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
                   BODY=$(git show -s --format=%b)
                   BODY="${BODY//'%'/'%25'}"
                   BODY="${BODY//$'\n'/'%0A'}"
                   BODY="${BODY//$'\r'/'%0D'}"
-                  echo "::set-output name=BODY::$BODY"
+                  echo "BODY=$BODY" >> $GITHUB_OUTPUT
 
             - name: Create Pull Request
               id: cpr

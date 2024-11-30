@@ -7,6 +7,7 @@ import type { MatterAdapter } from '../main';
 import { BaseServerNode } from './BaseServerNode';
 import matterDeviceFactory from './to-matter/matterFactory';
 import { initializeUnreachableStateHandler } from './to-matter/SharedStateHandlers';
+import type { GenericDeviceToMatter } from './to-matter/GenericDeviceToMatter';
 
 export interface DeviceCreateOptions {
     parameters: DeviceOptions;
@@ -27,6 +28,7 @@ export interface DeviceOptions {
 class Device extends BaseServerNode {
     #parameters: DeviceOptions;
     #device: GenericDevice;
+    #mappingDevice?: GenericDeviceToMatter;
     #deviceOptions: DeviceDescription;
     #started = false;
 
@@ -76,11 +78,13 @@ class Device extends BaseServerNode {
             return;
         }
 
+        this.#mappingDevice = mappingDevice;
         const endpoints = mappingDevice.getMatterEndpoints();
 
         // The device type to announce we use from the first returned endpoint of the device
         const deviceType = endpoints[0].type.deviceType;
 
+        const versions = this.adapter.versions;
         try {
             this.serverNode = await ServerNode.create({
                 id: this.#parameters.uuid,
@@ -100,6 +104,10 @@ class Device extends BaseServerNode {
                     productId,
                     serialNumber: uniqueId,
                     uniqueId: md5(uniqueId),
+                    hardwareVersion: versions.versionNum,
+                    hardwareVersionString: versions.versionStr,
+                    softwareVersion: versions.versionNum,
+                    softwareVersionString: versions.versionStr,
                 },
             });
         } catch (error) {
@@ -178,6 +186,7 @@ class Device extends BaseServerNode {
             const errorText = inspect(error, { depth: 10 });
             this.adapter.log.error(`Error stopping device ${this.#parameters.uuid}: ${errorText}`);
         }
+        await this.#mappingDevice?.destroy();
         await this.#device.destroy();
         this.serverNode = undefined;
         this.#started = false;

@@ -6,15 +6,25 @@ import type Dimmer from '../../lib/devices/Dimmer';
 import type { IdentifyOptions } from './GenericDeviceToMatter';
 import { GenericElectricityDataDeviceToMatter } from './GenericElectricityDataDeviceToMatter';
 import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
+import { EventedOnOffLightOnOffServer } from '../behaviors/EventedOnOffLightOnOffServer';
+import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
+import { EventedLightingLevelControlServer } from '../behaviors/EventedLightingLevelControlServer';
+
+const IoBrokerDimmableLightDevice = DimmableLightDevice.with(
+    EventedOnOffLightOnOffServer,
+    EventedLightingLevelControlServer,
+    IoBrokerEvents,
+);
+type IoBrokerDimmableLightDevice = typeof IoBrokerDimmableLightDevice;
 
 /** Mapping Logic to map a ioBroker Dimmer device to a Matter DimmableLightDevice. */
 export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
     readonly #ioBrokerDevice: Dimmer;
-    readonly #matterEndpoint: Endpoint<DimmableLightDevice>;
+    readonly #matterEndpoint: Endpoint<IoBrokerDimmableLightDevice>;
 
     constructor(ioBrokerDevice: GenericDevice, name: string, uuid: string) {
         super(name, uuid);
-        this.#matterEndpoint = new Endpoint(DimmableLightDevice, { id: uuid });
+        this.#matterEndpoint = new Endpoint(IoBrokerDimmableLightDevice, { id: uuid });
         this.#ioBrokerDevice = ioBrokerDevice as Dimmer;
         this.addElectricityDataClusters(this.#matterEndpoint, this.#ioBrokerDevice);
     }
@@ -40,15 +50,19 @@ export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
 
     registerMatterHandlers(): void {
         if (this.ioBrokerDevice.hasPower()) {
-            this.#matterEndpoint.events.onOff.onOff$Changed.on(async on => {
+            this.#matterEndpoint.events.ioBrokerEvents.onOffControlled.on(async on => {
                 const currentValue = !!this.#ioBrokerDevice.getPower();
                 if (on !== currentValue) {
                     await this.#ioBrokerDevice.setPower(on);
                 }
             });
+        } else {
+            this.#ioBrokerDevice.adapter.log.info(
+                `Device ${this.#ioBrokerDevice.deviceType} (${this.ioBrokerDevice.uuid}) has no mapped power state`,
+            );
         }
 
-        this.#matterEndpoint.events.levelControl.currentLevel$Changed.on(async (level: number | null) => {
+        this.#matterEndpoint.events.ioBrokerEvents.dimmerLevelControlled.on(async level => {
             const currentValue = this.#ioBrokerDevice.getLevel();
             if (level !== currentValue && level !== null) {
                 await this.#ioBrokerDevice.setLevel(Math.round((level / 254) * 100));
@@ -88,15 +102,20 @@ export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
                         },
                     });
                     break;
-                case PropertyType.Level:
+                case PropertyType.Level: {
+                    const value = this.#ioBrokerDevice.cropValue((event.value as number) ?? 0, 0, 100);
+
                     await this.#matterEndpoint.set({
                         levelControl: {
-                            currentLevel: Math.round(((event.value as number) / 100) * 254),
+                            currentLevel: Math.round((value / 100) * 254) || 1,
                         },
                     });
                     break;
+                }
             }
         });
+
+        const currentLevel = this.#ioBrokerDevice.cropValue(this.#ioBrokerDevice.getLevel() ?? 0, 0, 100);
 
         // init current state from ioBroker side
         await this.#matterEndpoint.set({
@@ -104,7 +123,7 @@ export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
                 onOff: this.ioBrokerDevice.hasPower() ? !!this.#ioBrokerDevice.getPower() : true,
             },
             levelControl: {
-                currentLevel: this.#ioBrokerDevice.getLevel() || 1,
+                currentLevel: Math.round((currentLevel / 100) * 254) || 1,
             },
         });
 

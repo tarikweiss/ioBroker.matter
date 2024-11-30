@@ -187,6 +187,10 @@ abstract class GenericDevice {
         }
     }
 
+    get adapter(): ioBroker.Adapter {
+        return this.#adapter;
+    }
+
     async addDeviceState<T>(
         name: string,
         type: PropertyType,
@@ -595,6 +599,22 @@ abstract class GenericDevice {
         });
 
         return states;
+    }
+
+    cropValue(value: number, min: number, max: number): number {
+        if (isNaN(value)) {
+            this.#adapter.log.warn(`${this.#deviceType}: Value ${value} is not a number. Adjusting to ${min}`);
+            return min;
+        }
+        if (value < min) {
+            this.#adapter.log.warn(`${this.#deviceType}: Value ${value} is below minimum ${min}. Adjusting to ${min}`);
+            return min;
+        }
+        if (value > max) {
+            this.#adapter.log.warn(`${this.#deviceType}: Value ${value} is above maximum ${max}. Adjusting to ${max}`);
+            return max;
+        }
+        return value;
     }
 }
 

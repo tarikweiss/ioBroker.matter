@@ -213,11 +213,33 @@ TBD
 -->
 
 ## Changelog
-### **WORK IN PROGRESS**
-* IMPORTANT: Breaking change!! Please decommission ALL devices and do a full factory reset of the adapter Matter storage before installing this version. Pair the devices new afterwards. 
-* (@Apollon77) Finalizes Devices, Bridges and Controller functionality
+### 0.2.3 (2024-11-30)
+* (@Apollon77) Makes sure to delete all objects and stop device when a device is deleted in UI
+* (@Apollon77) When a devices/bridge object is deleted and adapter runs we try to detect this and stop the device/bridge
+* (@Apollon77) Optimizes close handling of adapter
+* (@Apollon77) Uses adapter version as Software and Hardware versions in the exposed Matter devices
+* (@Apollon77) Fixes "auto" flags in backend when make no sense in objects
+* (@Apollon77) Fixes "auto" flag in UI
+* (@Apollon77) Prevents cyclic state updates when a state is updated by the adapter to matter
+* (@Apollon77) Log warnings when device optional device states are not mapped
+* (@Apollon77) Hides Product-ID and VendorId fields in UI when adding devices into a bridge
+
+### 0.2.2 (2024-11-28)
+* (@Apollon77) Uses plain matter.js logs for better readability
+* (@Apollon77) Prevents ghost connection entries in the UI
+* (@Apollon77) Adds some missing implementations for Controller of Door, Window, FloodAlarm and Motion
+
+### 0.2.1 (2024-11-27)
+* (@Apollon77) Adds Color Temperature conversion if unit is "mireds"
+* (@Apollon77) Fixes Color Temperature cluster initialization
+* (@Apollon77) Fixes Min/Max calculation when unit conversion is used
+
+### 0.2.0 (2024-11-26)
+* IMPORTANT: Breaking change!! Please decommission ALL devices and do a full factory reset of the adapter Matter storage before installing this version. Pair the devices new afterward. 
+* (@Apollon77) Finalizes Devices, Bridges and Controller functionality with a first set of 11 device types
 * (@Apollon77) Upgrades to new Matter.js version and API (breaks storage structure)
 * (@GermanBluefox) Moved build process of GUI to vite
+* (@GermanBluefox) Added possibility to group devices in the GUI
 
 ### 0.1.13 (2023-12-01)
 * (@GermanBluefox) Working on the controller
