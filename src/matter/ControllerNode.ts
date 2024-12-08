@@ -143,12 +143,7 @@ class Controller implements GeneralNode {
                                     result: { error: error.message },
                                 }),
                             )
-                            .finally(() =>
-                                this.#adapter.setTimeout(
-                                    () => this.#commissioningStatus.delete(pollingId),
-                                    60 * 60_000,
-                                ),
-                            );
+                            .finally(() => setTimeout(() => this.#commissioningStatus.delete(pollingId), 60 * 60_000));
                         return { result: { pollingId } };
                     }
                     return await this.commissionDevice(options);
@@ -227,11 +222,11 @@ class Controller implements GeneralNode {
             this.updateCallback();
         });
         node.events.structureChanged.on(async () => {
-            this.#adapter.log.debug(`Node "${node.nodeId}" structure changed`);
+            this.#adapter.log.info(`Node "${node.nodeId}" structure changed`);
             await this.nodeToIoBrokerStructure(node);
         });
         node.events.decommissioned.on(() => {
-            this.#adapter.log.debug(`Node "${node.nodeId}" decommissioned`);
+            this.#adapter.log.info(`Node "${node.nodeId}" decommissioned`);
             // TODO Delete the node from config and objects
         });
     }

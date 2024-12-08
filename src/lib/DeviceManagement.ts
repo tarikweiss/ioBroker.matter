@@ -1,5 +1,4 @@
 import type { MatterAdapter } from '../main';
-
 import {
     type ActionContext,
     type ApiVersion,
@@ -16,10 +15,10 @@ import {
 } from '@iobroker/dm-utils';
 import type { GeneralMatterNode, NodeDetails } from '../matter/GeneralMatterNode';
 import { GenericDeviceToIoBroker } from '../matter/to-iobroker/GenericDeviceToIoBroker';
-
 import { decamelize } from './utils';
 import type { DeviceAction } from '@iobroker/dm-utils/build/types/base';
 import { logEndpoint } from '../matter/EndpointStructureInspector';
+import { inspect } from 'util';
 
 function strToBool(str: string): boolean | null {
     if (str === 'true') {
@@ -171,7 +170,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         const res = new Array<DeviceInfo>();
         const node: DeviceInfo = {
             id,
-            name: `Node ${ioNode.nodeId}`,
+            name: `Node ${ioNode.name}`,
             icon: undefined,
             ...details,
             status,
@@ -266,12 +265,45 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             }
         }
 
-        await this.adapter.controllerNode?.decommissionNode(node.nodeId);
+        const progress = await context.openProgress(this.#adapter.t('Unpairing node...'), { label: '0%' });
+
+        // Start an interval that normally covers 30s and with each update the number gets slower increased for the percentage
+        let finished = false;
+        let timeout: NodeJS.Timeout | undefined;
+        let iteration = 0;
+
+        const updateProgress = async (): Promise<void> => {
+            iteration++;
+            const progressValue = Math.min(99.9 * (1 - Math.exp(-iteration / (33 / 2))), 99.9); // Max 33 usually, scale factor 2
+            await progress.update({ value: progressValue, label: `${progressValue.toFixed(0)}%` });
+            if (finished) {
+                return;
+            }
+            timeout = setTimeout(updateProgress, 1000);
+        };
+        timeout = setTimeout(updateProgress, 1000);
+
+        let errorHappened = false;
+        try {
+            await node.remove();
+        } catch (error) {
+            const errorText = inspect(error, { depth: 10 });
+            this.adapter.log.error(`Error during unpairing for node ${node.nodeId}: ${errorText}`);
+            errorHappened = true;
+        }
+
+        finished = true;
+        if (timeout) {
+            clearTimeout(timeout);
+        }
+        await progress.close();
+        if (errorHappened) {
+            await context.showMessage(this.#adapter.t('Error happened during unpairing. Please check the log.'));
+        }
         return { refresh: true };
     }
 
     async #handleRenameNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
-        this.adapter.log.info(`Rename node ${node.nodeId}`);
         const result = await context.showForm(
             {
                 type: 'panel',
@@ -279,6 +311,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                     name: {
                         type: 'text',
                         label: this.#adapter.getText('Name'),
+                        allowEmpty: false,
                         sm: 12,
                     },
                 },
@@ -288,13 +321,14 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             },
             {
                 data: {
-                    name: node.nodeId,
+                    name: node.name,
                 },
                 title: this.#adapter.getText('Rename node'),
             },
         );
 
-        if (result?.name !== undefined) {
+        if (result?.name !== undefined && result.name !== node.name) {
+            this.adapter.log.info(`Rename node ${node.nodeId} to "${result.name}"`);
             await node.rename(result.name);
             return { refresh: true };
         }
@@ -541,7 +575,6 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         device: GenericDeviceToIoBroker,
         context: ActionContext,
     ): Promise<{ refresh: DeviceRefresh }> {
-        this.adapter.log.info(`Rename device ${device.name}`);
         const result = await context.showForm(
             {
                 type: 'panel',
@@ -549,6 +582,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                     name: {
                         type: 'text',
                         label: this.#adapter.getText('Name'),
+                        allowEmpty: false,
                         sm: 12,
                     },
                 },
@@ -564,15 +598,16 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             },
         );
 
-        if (result?.name !== undefined) {
+        if (result?.name !== undefined && result.name !== device.name) {
+            this.adapter.log.info(`Rename device ${device.name} to "${result.name}"`);
             await device.rename(result.name);
-            return { refresh: 'device' };
+            return { refresh: true };
         }
         return { refresh: false };
     }
 
     async getDeviceDetails(id: string): Promise<DeviceDetails | null | { error: string }> {
-        this.adapter.log.info(`Get details ${id}`);
+        this.adapter.log.debug(`Get details ${id}`);
 
         const idParts = id.split('-');
         const nodeId = idParts[0];
